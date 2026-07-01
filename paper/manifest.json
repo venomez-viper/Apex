@@ -1,0 +1,49 @@
+{
+  "run_id": "rc-20260630-202809-308c01",
+  "target_format": "IEEEtran conference",
+  "pipeline_status": {
+    "last_completed_stage": 20,
+    "last_completed_name": "QUALITY_GATE",
+    "quality_score_1_to_10": 6.8,
+    "verdict": "proceed"
+  },
+  "files": [
+    "paper/paper.pdf",
+    "paper/paper.tex",
+    "paper/references.bib",
+    "experiments/apex2_simulation.py",
+    "experiments/apex2_metrics.json",
+    "experiments/apex2_model_comparison.csv",
+    "experiments/apex2_final_rsi_summary.csv",
+    "experiments/apex2_results_timeseries.csv"
+  ],
+  "figures": [
+    "figures/method_comparison.png",
+    "figures/ablation_analysis.png",
+    "figures/experiment_comparison.png",
+    "figures/metric_trajectory.png",
+    "figures/metric_heatmap.png",
+    "figures/final_rsi_by_condition.png",
+    "figures/segment_gap_by_condition.png",
+    "figures/subtask_survival_profile.png",
+    "figures/coverage_and_calibration.png",
+    "figures/bic_model_ranking.png"
+  ],
+  "reports": [
+    "reports/methodology_report.md",
+    "reports/experiment_report.md",
+    "reports/results_report.md",
+    "reports/reproducibility_report.md",
+    "reports/quality_audit_report.md",
+    "reports/limitations_report.md",
+    "reports/conclusion_validation_report.md",
+    "reports/ieee_preparation_checklist.md"
+  ],
+  "paper": {
+    "title": "STAM: Deal-Stratified Survival Modeling for AI Presales Exposure",
+    "author_block": "Akash Anipakalu Giridhar",
+    "page_count": 8,
+    "email_in_author_block": false
+  },
+  "generated": "2026-07-01T00:44:56+00:00"
+}

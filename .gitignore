@@ -1,0 +1,24 @@
+# Local workspaces and handoff notes
+.agents/
+AutoResearchClaw/
+paper-part1/
+HANDOFF.md
+
+# LaTeX build products
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.toc
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# OS/editor noise
+.DS_Store
+Thumbs.db

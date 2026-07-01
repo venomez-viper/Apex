@@ -19,10 +19,10 @@ The final paper is provided in IEEE conference format.
 
 | Artifact | Path |
 | --- | --- |
-| Final IEEE PDF | [`apex2_artifacts/paper/paper.pdf`](apex2_artifacts/paper/paper.pdf) |
-| LaTeX source | [`apex2_artifacts/paper/paper.tex`](apex2_artifacts/paper/paper.tex) |
-| Bibliography | [`apex2_artifacts/paper/references.bib`](apex2_artifacts/paper/references.bib) |
-| Artifact manifest | [`apex2_artifacts/paper/manifest.json`](apex2_artifacts/paper/manifest.json) |
+| Final IEEE PDF | [`paper/paper.pdf`](paper/paper.pdf) |
+| LaTeX source | [`paper/paper.tex`](paper/paper.tex) |
+| Bibliography | [`paper/references.bib`](paper/references.bib) |
+| Artifact manifest | [`paper/manifest.json`](paper/manifest.json) |
 
 ## Abstract
 
@@ -74,44 +74,48 @@ data are not sufficient to claim validated labor-market prediction.
 ## Artifact Layout
 
 ```text
-apex2_artifacts/
-  checkpoint.json
-  experiment/
-    apex2_simulation.py
-    apex2_metrics.json
-    apex2_model_comparison.csv
-    apex2_final_rsi_summary.csv
-    apex2_results_timeseries.csv
-  paper/
-    paper.pdf
-    paper.tex
-    references.bib
-    manifest.json
-  stage12_runs/
-    results.json
-    run-1.json
-  stage14_analysis/
-    analysis.md
-    experiment_summary.json
-    results_table.tex
-  stage14_charts/
-    ablation_analysis.png
-    experiment_comparison.png
-    method_comparison.png
-    metric_heatmap.png
-    metric_trajectory.png
-  stage16_outline/
-    outline.md
-  stage17_draft/
-    paper_draft.md
-  stage18_review/
-    reviews.md
-  stage19_revision/
-    paper_revised.md
-    revision_notes_internal.md
-  stage20_quality/
-    quality_report.json
-    fabrication_flags.json
+paper/
+  paper.pdf
+  paper.tex
+  references.bib
+  manifest.json
+experiments/
+  apex2_simulation.py
+  apex2_metrics.json
+  apex2_model_comparison.csv
+  apex2_final_rsi_summary.csv
+  apex2_results_timeseries.csv
+figures/
+  ablation_analysis.png
+  bic_model_ranking.png
+  coverage_and_calibration.png
+  experiment_comparison.png
+  final_rsi_by_condition.png
+  method_comparison.png
+  metric_heatmap.png
+  metric_trajectory.png
+  segment_gap_by_condition.png
+  subtask_survival_profile.png
+scripts/
+  generate_validation_figures.py
+reports/
+  methodology_report.md
+  experiment_report.md
+  results_report.md
+  reproducibility_report.md
+  quality_audit_report.md
+  limitations_report.md
+  conclusion_validation_report.md
+  ieee_preparation_checklist.md
+  pipeline/
+    checkpoint.json
+    stage12_runs/
+    stage14_analysis/
+    stage16_outline/
+    stage17_draft/
+    stage18_review/
+    stage19_revision/
+    stage20_quality/
 ```
 
 ## Reproducibility
@@ -119,7 +123,7 @@ apex2_artifacts/
 The main experiment script is:
 
 ```bash
-python apex2_artifacts/experiment/apex2_simulation.py
+python experiments/apex2_simulation.py
 ```
 
 The committed artifacts include the generated time-series output, model
@@ -137,7 +141,7 @@ last_completed_name: QUALITY_GATE
 
 The Stage 20 quality report is available at:
 
-[`apex2_artifacts/stage20_quality/quality_report.json`](apex2_artifacts/stage20_quality/quality_report.json)
+[`reports/pipeline/stage20_quality/quality_report.json`](reports/pipeline/stage20_quality/quality_report.json)
 
 Summary:
 
