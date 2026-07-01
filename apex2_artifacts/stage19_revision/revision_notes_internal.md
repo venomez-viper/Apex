@@ -1,0 +1,1 @@
+Stage 19 preserved the full Stage 17 draft as the revised paper. Reviewer-requested changes are handled during IEEE export: author name only, conservative claims, explicit limitations, and grounded experiment metrics only.

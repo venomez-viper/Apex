@@ -1,0 +1,34 @@
+{
+  "run_id": "rc-20260630-202809-308c01",
+  "target_format": "IEEEtran conference",
+  "pipeline_status": {
+    "last_completed_stage": 20,
+    "last_completed_name": "QUALITY_GATE",
+    "quality_score_1_to_10": 6.8,
+    "verdict": "proceed"
+  },
+  "files": [
+    "apex2_artifacts/paper/paper.pdf",
+    "apex2_artifacts/paper/paper.tex",
+    "apex2_artifacts/paper/references.bib",
+    "apex2_artifacts/experiment/apex2_simulation.py",
+    "apex2_artifacts/experiment/apex2_metrics.json",
+    "apex2_artifacts/experiment/apex2_model_comparison.csv",
+    "apex2_artifacts/experiment/apex2_final_rsi_summary.csv",
+    "apex2_artifacts/experiment/apex2_results_timeseries.csv"
+  ],
+  "figures": [
+    "apex2_artifacts/stage14_charts/method_comparison.png",
+    "apex2_artifacts/stage14_charts/ablation_analysis.png",
+    "apex2_artifacts/stage14_charts/experiment_comparison.png",
+    "apex2_artifacts/stage14_charts/metric_trajectory.png",
+    "apex2_artifacts/stage14_charts/metric_heatmap.png"
+  ],
+  "paper": {
+    "title": "STAM: Deal-Stratified Survival Modeling for AI Presales Exposure",
+    "author_block": "Akash Anipakalu Giridhar",
+    "page_count": 8,
+    "email_in_author_block": false
+  },
+  "generated": "2026-07-01T00:44:56+00:00"
+}

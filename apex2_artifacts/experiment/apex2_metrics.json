@@ -1,0 +1,15 @@
+{
+  "topology_r_squared_t20": 0.034076183101728,
+  "enterprise_smb_cov_ratio_final": 1.648806945876928,
+  "kendall_tau_condition_rank_t40_full_vs_no_tam": 1.0,
+  "condition_rank_reversal_count": 0,
+  "gap_peak_quarter": 60,
+  "gap_peak_value": -0.07171781492281482,
+  "gap_final_value": -0.07171781492281482,
+  "bca_like_coverage_n20": 0.92,
+  "bca_like_coverage_n10": 0.8845833333333334,
+  "expert_rmse": 0.07539500338777937,
+  "calibrated_rmse": 0.12092220407275447,
+  "rmse_improvement_pct": -60.38490435608167,
+  "bls_scale": 1.1015835579514826
+}

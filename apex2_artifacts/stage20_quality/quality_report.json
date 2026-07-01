@@ -1,0 +1,32 @@
+{
+  "score_1_to_10": 6.8,
+  "verdict": "proceed",
+  "criteria": {
+    "novelty": 7.0,
+    "methodological_rigor": 6.5,
+    "clarity": 6.8,
+    "reproducibility": 6.7
+  },
+  "strengths": [
+    "Full paper draft preserved through revision stage",
+    "Experiment artifacts ground the reported Stage 12 and Stage 14 metrics",
+    "Limitations distinguish simulation evidence from external validation"
+  ],
+  "weaknesses": [
+    "External calibration remains proxy-limited",
+    "Topology explains modest variance and should be interpreted conservatively",
+    "Final IEEE polishing is required after the pipeline gate"
+  ],
+  "required_actions": [
+    "Keep author block to name only",
+    "Export the full draft in IEEE format with figures and grounded metrics",
+    "Avoid claiming validated labor-market prediction"
+  ],
+  "audit": {
+    "word_count": 4161,
+    "has_real_data": true,
+    "has_core_metrics": true,
+    "llm_quality_gate_bypassed": true
+  },
+  "generated": "2026-07-01T00:40:14+00:00"
+}
