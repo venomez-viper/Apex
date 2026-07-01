@@ -1,0 +1,114 @@
+{
+  "epm": {
+    "enterprise": {
+      "segment": "enterprise",
+      "independent_exposure": 0.36949999999999994,
+      "coupled_exposure": 0.5035999999999999,
+      "epm": 1.3629228687415427
+    },
+    "smb": {
+      "segment": "smb",
+      "independent_exposure": 0.36949999999999994,
+      "coupled_exposure": 0.36949999999999994,
+      "epm": 1.0
+    }
+  },
+  "asp": {
+    "enterprise": {
+      "segment": "enterprise",
+      "naive_order": [
+        "RFP response",
+        "Technical demo",
+        "Discovery",
+        "Objection handling",
+        "POC coordination",
+        "Champion development"
+      ],
+      "asp_order": [
+        "RFP response",
+        "Objection handling",
+        "Champion development",
+        "POC coordination",
+        "Technical demo",
+        "Discovery"
+      ],
+      "naive_curve": [
+        0.5035999999999999,
+        0.5197999999999999,
+        0.6115999999999999,
+        0.7961999999999999,
+        0.8944,
+        0.9175,
+        1.0
+      ],
+      "asp_curve": [
+        0.5035999999999999,
+        0.5197999999999999,
+        0.64335,
+        0.8079000000000001,
+        0.8079000000000001,
+        0.87,
+        1.0
+      ],
+      "naive_mean_exposure_partial": 0.7478999999999999,
+      "asp_mean_exposure_partial": 0.72979,
+      "survival_gain_from_sequencing": 0.01810999999999985,
+      "collapse_contribution": {
+        "Discovery": 0.338,
+        "Technical demo": 0.282,
+        "POC coordination": 0.22,
+        "RFP response": 0.12,
+        "Objection handling": 0.196,
+        "Champion development": 0.216
+      }
+    },
+    "smb": {
+      "segment": "smb",
+      "naive_order": [
+        "RFP response",
+        "Technical demo",
+        "Discovery",
+        "Objection handling",
+        "POC coordination",
+        "Champion development"
+      ],
+      "asp_order": [
+        "RFP response",
+        "Objection handling",
+        "Champion development",
+        "Technical demo",
+        "Discovery",
+        "POC coordination"
+      ],
+      "naive_curve": [
+        0.36949999999999994,
+        0.40549999999999997,
+        0.4865,
+        0.6164999999999999,
+        0.7074999999999999,
+        0.8724999999999999,
+        1.0
+      ],
+      "asp_curve": [
+        0.36949999999999994,
+        0.40549999999999997,
+        0.4965,
+        0.624,
+        0.705,
+        0.835,
+        1.0
+      ],
+      "naive_mean_exposure_partial": 0.6176999999999999,
+      "asp_mean_exposure_partial": 0.6132,
+      "survival_gain_from_sequencing": 0.0044999999999999485,
+      "collapse_contribution": {
+        "Discovery": 0.2,
+        "Technical demo": 0.18,
+        "POC coordination": 0.22,
+        "RFP response": 0.12,
+        "Objection handling": 0.13,
+        "Champion development": 0.15
+      }
+    }
+  }
+}

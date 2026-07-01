@@ -255,6 +255,107 @@ def calibration_rmse_summary() -> dict[str, float]:
     }
 
 
+# ===========================================================================
+# INVENTION: dependency-aware presales exposure.
+# Prior AI-exposure indices (Felten AIOE, Eloundou task exposure) score an
+# occupation as an independent weighted sum of task exposures. Presales tasks
+# are not independent: automating an upstream task (discovery, demo) changes
+# the human value of downstream tasks (POC, RFP, objection handling). Two
+# constructs formalize this:
+#   1. Exposure Propagation Multiplier (EPM): dependency-aware role exposure
+#      divided by the naive independent-sum exposure. EPM > 1 means an
+#      occupation-level score UNDERSTATES the true role exposure.
+#   2. Augmentation Sequencing Policy (ASP): the order in which to deploy AI
+#      across presales tasks so that automation coverage is achieved while
+#      keeping dependency-propagated role exposure (role-collapse risk) low.
+# ===========================================================================
+
+EDGE_WEIGHT = 0.30  # lambda: DAG propagation strength (matches run_model)
+
+
+def role_exposure(alpha_eff: np.ndarray, graph: np.ndarray, coupled: bool) -> float:
+    """Dependency-aware (coupled) or independent (naive) role exposure."""
+    if coupled:
+        alpha_eff = np.clip(alpha_eff + EDGE_WEIGHT * graph.T.dot(alpha_eff), 0.0, 1.0)
+    return float(np.dot(BETA, alpha_eff))
+
+
+def exposure_propagation_multiplier(segment: str, adoption: float = 1.0) -> dict:
+    """EPM at saturating adoption: coupled role exposure / independent exposure."""
+    graph = dag(segment)
+    base = np.clip(ALPHA_BASE * adoption, 0.0, 1.0)
+    indep = role_exposure(base, graph, coupled=False)
+    coupled = role_exposure(base, graph, coupled=True)
+    return {
+        "segment": segment,
+        "independent_exposure": indep,
+        "coupled_exposure": coupled,
+        "epm": coupled / indep if indep > 0 else 1.0,
+    }
+
+
+def collapse_contribution(segment: str) -> np.ndarray:
+    """Role-collapse risk of automating each task.
+
+    Direct criticality lost (beta_k) plus dependency-propagated criticality: a
+    task's downstream neighbors lose human-owned upstream context when it is
+    automated, weighted by their own criticality.
+    """
+    graph = dag(segment)
+    return BETA + EDGE_WEIGHT * graph.dot(BETA)
+
+
+def augmentation_sequencing(segment: str, adoption: float = 1.0) -> dict:
+    """Compare AI rollout orderings over the full transition.
+
+    Tasks are automated one at a time. At each step the dependency-aware role
+    exposure is measured. A policy that preserves more role survival keeps
+    cumulative exposure lower during the partial-rollout transition.
+      - naive: automate the most technically automatable tasks first
+               (ignores criticality and downstream dependency).
+      - asp:   automate the lowest role-collapse-contribution tasks first,
+               deferring high-criticality and high-propagation tasks.
+    The gain is measured as the mean exposure difference across the partial
+    rollout (steps 1..5); at full automation both orders coincide.
+    """
+    graph = dag(segment)
+    collapse = collapse_contribution(segment)
+    naive_order = list(np.argsort(-ALPHA_BASE))  # most automatable first
+    asp_order = list(np.argsort(collapse))       # safest-to-automate first
+
+    def rollout(order: list[int]) -> list[float]:
+        alpha = np.clip(ALPHA_BASE * adoption, 0.0, 1.0)
+        curve = [role_exposure(alpha, graph, coupled=True)]
+        for k in order:
+            alpha = alpha.copy()
+            alpha[k] = adoption  # task fully absorbed by AI
+            curve.append(role_exposure(alpha, graph, coupled=True))
+        return curve
+
+    naive_curve = rollout(naive_order)
+    asp_curve = rollout(asp_order)
+    partial = slice(1, len(TASKS))  # steps 1..5 (exclude 0 and full automation)
+    naive_mean = float(np.mean(naive_curve[partial]))
+    asp_mean = float(np.mean(asp_curve[partial]))
+    return {
+        "segment": segment,
+        "naive_order": [TASKS[i] for i in naive_order],
+        "asp_order": [TASKS[i] for i in asp_order],
+        "naive_curve": naive_curve,
+        "asp_curve": asp_curve,
+        "naive_mean_exposure_partial": naive_mean,
+        "asp_mean_exposure_partial": asp_mean,
+        "survival_gain_from_sequencing": naive_mean - asp_mean,
+        "collapse_contribution": {TASKS[i]: float(collapse[i]) for i in range(len(TASKS))},
+    }
+
+
+def invention_metrics() -> dict:
+    epm = {s: exposure_propagation_multiplier(s) for s in ["enterprise", "smb"]}
+    asp = {s: augmentation_sequencing(s) for s in ["enterprise", "smb"]}
+    return {"epm": epm, "asp": asp}
+
+
 def plot_outputs(df: pd.DataFrame, bic: pd.DataFrame) -> None:
     full = df[(df["method"] == "APEX-II") & (df["seed"] == 0)]
     plt.figure(figsize=(7.0, 4.2))
@@ -414,8 +515,20 @@ def main() -> None:
     }
     (OUT / "apex2_metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
 
+    invention = invention_metrics()
+    (OUT / "apex2_invention.json").write_text(json.dumps(invention, indent=2), encoding="utf-8")
+
     plot_outputs(df, bic)
     print(json.dumps(metrics, indent=2))
+    print("\n=== INVENTION: dependency-aware exposure ===")
+    for seg in ["enterprise", "smb"]:
+        e = invention["epm"][seg]
+        a = invention["asp"][seg]
+        print(f"[{seg}] EPM={e['epm']:.4f} "
+              f"(indep={e['independent_exposure']:.4f} -> coupled={e['coupled_exposure']:.4f})")
+        print(f"    naive order {a['naive_order']} mean exposure {a['naive_mean_exposure_partial']:.4f}")
+        print(f"    ASP order   {a['asp_order']} mean exposure {a['asp_mean_exposure_partial']:.4f}")
+        print(f"    survival gain from sequencing = {a['survival_gain_from_sequencing']:.4f}")
 
 
 if __name__ == "__main__":

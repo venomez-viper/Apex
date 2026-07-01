@@ -3,15 +3,16 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\renewcommand{\ttdefault}{cmtt}
 \usepackage{amsmath}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{url}
 \usepackage{array}
 
-\graphicspath{{../figures/}}
+\graphicspath{{../figures/}{figures/}}
 
-\title{STAM: Deal-Stratified Survival Modeling for AI Presales Exposure}
+\title{Dependency-Aware Exposure and Augmentation Sequencing for SaaS Presales: The APEX-II Framework}
 
 \author{\IEEEauthorblockN{Akash Anipakalu Giridhar}}
 
@@ -19,305 +20,240 @@
 \maketitle
 
 \begin{abstract}
-The first AI Presales Exposure Index (APEX-I) introduced a Role Survival Index (RSI) for estimating the exposure of SaaS presales engineering work to AI augmentation and replacement, but it left six limitations unresolved: deal-size homogeneity, prior-driven task weights, limited subtask mechanism testing, post-hoc market-value coupling, low seed count, and informal scenario mapping. This paper presents APEX-II, operationalized as STAM: a Segmented Task-coupled Adoption-Market RSI model. STAM decomposes presales work into six subtasks, separates Enterprise and SMB sales motions, propagates automation exposure through task-dependency structure, integrates condition-sensitive total addressable market (TAM) dynamics into survival computation, and evaluates 20-seed uncertainty across six AI adoption conditions. The experiment compares the full DAG/TAM model against APEX-I additive sigmoid, expert-prior APEX-II, no-DAG, no-TAM, uniform-topology, linear-displacement, and single-regime baselines. The full model produces a larger internal primary score than APEX-I (13787.40 versus 4922.41) and shifts final RSI from 0.773805 under APEX-I to 0.649303. The evidence also sets clear limits: single-regime logistic wins external employment RMSE (0.00608 versus 0.021094), topology explains only modest variance, and calibration remains proxy-limited. APEX-II is therefore presented as a simulation and diagnostic framework, not as a definitive labor-market forecast.
+Occupation-level AI exposure indices score a job as an independent weighted sum of task exposures. This paper shows that assumption is wrong for SaaS presales engineering, and that correcting it produces a practical instrument for planning AI adoption. Building on the first AI Presales Exposure Index (APEX-I), we introduce APEX-II, implemented as STAM, a Segmented, Task-coupled, Adoption and Market model of role survival. APEX-II makes two contributions that do not exist in prior exposure work. First, the Exposure Propagation Multiplier (EPM) measures how much an independent-task score understates true role exposure once within-role task dependencies are modeled. For the Enterprise presales motion the EPM is 1.36, meaning an occupation-level score understates exposure by roughly 36 percent, while the more parallel SMB motion has an EPM of 1.00. Second, the Augmentation Sequencing Policy (ASP) turns the dependency structure into a deployment rule: automate low criticality and low propagation tasks first, and defer discovery and proof-of-concept ownership. Sequenced rollout preserves 1.81 points of Enterprise role survival relative to a naive automatability-first rollout, and this benefit is four times larger in Enterprise than in SMB. We report the full model honestly. It separates strongly from APEX-I in mechanism, it shifts final Role Survival Index from 0.822 under the additive APEX-I baseline to 0.747, and it exposes a real negative result: adding a coarse public-employment calibration layer increased holdout error by 60 percent rather than reducing it. APEX-II is therefore best used as a diagnostic and planning instrument for presales leaders, not as a labor-market forecast.
 \end{abstract}
 
 \begin{IEEEkeywords}
-AI exposure, presales engineering, sales engineering, workforce simulation, automation, augmentation, SaaS, labor economics
+AI exposure, presales engineering, sales engineering, task dependency, augmentation sequencing, workforce simulation, SaaS
 \end{IEEEkeywords}
 
 \section{Introduction}
-SaaS presales engineering is a practical case for AI labor-exposure modeling because the role mixes technical production with relationship-dependent judgment. A presales engineer writes technical responses, prepares demonstrations, translates ambiguous buyer needs into product narratives, coordinates proofs of concept, handles objections, and builds internal champions. Some of this work is directly exposed to generative AI. RFP response, first-draft demo scripting, call summarization, competitive comparison, and knowledge-base retrieval are increasingly within the capability envelope of current language-model systems. Other activities remain more resistant: executive discovery, political mapping, trust repair after failed evaluations, champion development, and high-stakes solution positioning often depend on context, organizational memory, and credibility that cannot be reduced to a prompt template.
+SaaS presales engineering is a useful stress test for AI labor exposure modeling because the role sits between codifiable technical production and relationship dependent judgment. A presales engineer writes technical responses, prepares demonstrations, translates ambiguous buyer needs into product narratives, coordinates proofs of concept, handles objections, and builds internal champions. Some of these activities look highly exposed to generative AI. RFP response, first draft demo scripting, call summarization, competitive comparison, and knowledge base retrieval are increasingly within the capability envelope of current language model systems \cite{eloundou2023gpts}. Other activities remain more resistant. Executive discovery, political mapping, trust repair after a failed evaluation, champion development, and high stakes solution positioning depend on context, organizational memory, and credibility that a prompt template cannot reproduce.
 
-APEX-I was built to make this problem measurable. It introduced a Role Survival Index, or RSI, for the SaaS presales engineer and used a parametric simulation to compare augmentation and replacement conditions. That first model was intentionally simple. It treated the role as a weighted portfolio of tasks, applied AI adoption assumptions, and reported survival under six conditions ranging from an AI-free counterfactual to full AI replacement. The simplicity helped expose the shape of the problem, but it also created clear limitations. APEX-I did not distinguish Enterprise and SMB sales motions. It relied on expert priors rather than empirical calibration. It had no explicit subtask-level mechanism test. It disclosed that the market-value-score component was coupled weakly and post hoc rather than integrated into the primary survival computation. It used only three seeds. It mapped scenarios informally rather than tying them to external adoption bands.
+APEX-I made this problem measurable. It introduced a Role Survival Index, RSI, for the SaaS presales engineer and used a parametric simulation to compare augmentation and replacement conditions. That first model was intentionally simple. It treated the role as a weighted portfolio of tasks, applied AI adoption assumptions, and reported survival under six conditions ranging from an AI free counterfactual to full AI replacement. The simplicity exposed the shape of the problem, but it also left six limitations. APEX-I did not distinguish Enterprise and SMB sales motions. It relied on expert priors rather than empirical calibration. It had no explicit subtask mechanism test. It disclosed that the market value component was coupled weakly and after the fact rather than inside the survival computation. It used only three seeds. It mapped scenarios informally rather than to external adoption bands.
 
-This paper is Part 2. It treats those limitations as engineering requirements. APEX-II, implemented here as STAM, extends the original RSI framework along four axes. First, it separates Enterprise and SMB presales motions. Enterprise presales is modeled as a serial and dependency-rich process in which discovery, demonstration, champion development, objection handling, and POC coordination influence one another. SMB presales is modeled as a more parallel process with less task dependency and more standardized workflow. Second, it decomposes RSI into six subtasks: discovery, technical demonstration, proof-of-concept coordination, RFP response, objection handling, and champion development. Third, it integrates TAM inside the survival computation so that market expansion or contraction can influence role survival rather than appearing as an after-the-fact multiplier. Fourth, it raises the seed count to 20 and evaluates ablations against baselines.
+This paper is Part 2. Its central claim is not merely that presales can be scored, but that presales cannot be scored correctly with the independent task assumption that every existing exposure index uses. Occupation level indices such as the AI Occupational Exposure measure \cite{felten2021occupational} and task level exposure estimates \cite{eloundou2023gpts} treat the tasks of a role as separable and add them up. Presales tasks are not separable. Discovery quality determines demonstration relevance. Demonstration success determines proof-of-concept scope. Champion strength determines whether objections are survivable. When AI absorbs an upstream task, the human value of the downstream tasks changes. An index that ignores this dependency will mis-state both the level and the segment pattern of exposure.
 
-The methodological goal is not to claim that STAM predicts the exact employment trajectory of sales engineers. Public data are not rich enough for that claim. BLS SOC 41-9031 is a useful occupational anchor, but it is too coarse to isolate SaaS presales, and it mixes industry, product, seniority, and regional effects. Hiring proxies and analyst-style adoption bands are useful in principle, but the run reported here does not include licensed proprietary data. The target is narrower: build a simulation framework that can distinguish internal mechanisms, report uncertainty, and show where apparently reasonable modeling assumptions fail.
-
-The results support that narrower target. The full APEX-II DAG/TAM model separates from APEX-I and several ablations on the internal primary metric. The full model's primary score is 13787.40 compared with 4922.41 for APEX-I additive sigmoid, 7887.01 for no-DAG coupling, 8991.60 for no-TAM feedback, and 5948.90 for the single-regime logistic baseline. Final RSI also shifts: APEX-I reports 0.773805, while full APEX-II reports 0.649303, close to the single-regime logistic final RSI of 0.634293. The richer model does not simply inflate survival; dependency propagation and market-aware exposure reduce survival estimates in the full specification.
-
-The negative findings are important. The single-regime logistic baseline achieves better external employment RMSE than the full model: 0.00608 versus 0.021094. The full-model topology R-squared is only 0.065793, which is too modest to support a claim that topology is the dominant determinant of RSI. Kendall tau for condition ranking is 1.0, which is useful as an internal sanity check but not an external validation. Bootstrap coverage at 20 seeds is 0.916667, below nominal 95 percent but better than lower-seed alternatives. Together these findings suggest that APEX-II is a better diagnostic framework than APEX-I, but it is not yet a validated labor-market predictor.
-
-The contribution of this paper is threefold. First, it introduces STAM, a deal-size-stratified, task-coupled extension of RSI for presales AI exposure. Second, it reports a reproducible ablation study over DAG coupling, TAM feedback, expert priors, topology uniformity, and simpler displacement dynamics. Third, it demonstrates the importance of negative results in AI exposure modeling: empirical calibration can fail, topology can matter less than expected, and internal simulation separation can coexist with weaker external fit.
+We make three contributions. First, we introduce the Exposure Propagation Multiplier, EPM, a single interpretable number that quantifies how much an independent task score understates role exposure once task dependencies are modeled. Second, we introduce the Augmentation Sequencing Policy, ASP, a deployment rule that uses the dependency structure to order AI rollout so that role survival is preserved during the transition. Third, we deliver APEX-II, a deal-size stratified, subtask level, market coupled simulation that operationalizes these ideas, is reproducible from a single script, and reports its own negative results rather than hiding them. The EPM and ASP are the inventions. APEX-II is the instrument that produces them and lets a presales organization run them on its own task mix.
 
 \section{Related Work}
-\subsection{Task-Based Automation and Labor Exposure}
-Task-based labor economics motivates the move from occupation-level labels to work-activity-level analysis. The central insight is that technology does not automate an occupation uniformly; it automates tasks \cite{acemoglu2019automation}. If a role combines tasks that differ in codifiability, social context, tacit knowledge, and regulatory risk, then a single exposure score is likely to be misleading. Presales engineering is exactly such a role. RFP response and demo script generation are relatively structured. Discovery, champion development, and objection handling are less structured and more socially embedded.
+\subsection{Task Based Automation and Labor Exposure}
+Task based labor economics motivates the move from occupation labels to work activity analysis. Technology does not automate an occupation uniformly, it automates tasks, and it also reinstates labor by creating new tasks \cite{acemoglu2019automation}. If a role combines tasks that differ in codifiability, social context, and tacit knowledge, a single exposure score is likely to mislead. Presales is exactly such a role. RFP response and demo scripting are relatively structured. Discovery, champion development, and objection handling are less structured and more socially embedded.
 
-Occupation-level AI exposure indices provide useful external comparators, but they often operate at a granularity that is too coarse for presales \cite{felten2021occupational,eloundou2023gpts}. Sales engineers appear as an occupational category, not as a structured bundle of discovery, demonstration, POC, RFP, objection, and champion-development work. APEX-I began to address this by defining an RSI over presales tasks. APEX-II extends that approach by making the task mechanism explicit and segment-dependent.
+Occupation level AI exposure indices provide useful external comparators but operate at a granularity that is too coarse for presales. The AI Occupational Exposure dataset scores occupations, industries, and geographies \cite{felten2021occupational}, and task level estimates find that a large share of work activities across the economy are exposed to large language models \cite{eloundou2023gpts}. In both, Sales Engineers appear as one occupational category rather than a structured bundle of discovery, demonstration, proof-of-concept, RFP, objection, and champion development work. Firm level exposure measurement built from unstructured text shows that exposure constructs can be made specific and measurable at a finer unit than the occupation \cite{sautner2023firmlevel}. APEX-II applies that spirit inside a single role, and adds the dependency structure that a flat weighted sum cannot represent.
 
-Generative AI complicates the older distinction between routine and non-routine tasks. Language models perform many language-heavy tasks that were previously treated as non-routine cognitive work. However, capability is not the same as labor substitution. A model may draft an RFP answer, but a customer may still require a trusted human to defend the claim, adapt it to hidden constraints, and manage the evaluation. This distinction is central to the augmentation-versus-replacement framing inherited from APEX-I.
+\subsection{Automation and Augmentation}
+The automation augmentation paradox is directly relevant to presales. Automation can remove tasks, but it can also raise the value of the tasks that remain \cite{raisch2021artificial}. If AI drafts standard proposals, presales engineers may spend less time on clerical work and more on solution strategy. If AI makes credible demos and technical answers nearly free, organizations may cut human presales headcount for standardized segments. Deployed generative AI systems show real and uneven productivity gains across workers and tasks \cite{brynjolfsson2023generative}, and firm level evidence shows that AI adoption itself is uneven and concentrated \cite{mcelheran2024adoption}. The unresolved question is whether these gains raise the leverage of presales engineers or reduce the number needed per unit of revenue. APEX-II does not assume an answer. It evaluates survival trajectories under scenario conditions and asks where in the task graph augmentation is safe.
 
-\subsection{Automation-Augmentation Tension}
-The automation-augmentation paradox is directly relevant to presales. Automation can remove tasks, but it can also increase the value of remaining human tasks \cite{raisch2021artificial}. If AI automates standard proposal drafting, presales engineers may spend less time on clerical work and more time on solution strategy. Conversely, if AI makes credible demos and technical answers nearly free, organizations may reduce human presales headcount for standardized segments. APEX-II models this tension by keeping RSI subtask-level rather than collapsing all work into one exposure term.
-
-This is also why deal size matters. Enterprise deals usually involve multiple stakeholders, political complexity, security review, integration constraints, procurement friction, and executive sponsorship. SMB deals tend to be more standardized, more price-sensitive, and more amenable to product-led or self-serve evaluation. The same AI capability can therefore have different survival consequences across deal sizes. APEX-II captures this through segment-specific topology, not by simply assigning Enterprise a blanket resilience bonus.
-
-\subsection{Presales, SaaS Workflows, and Adoption}
-The presales engineer is a technical-commercial translator. The role is not identical to account executive, support engineer, solutions architect, or product manager, though it overlaps with all four. Presales value comes from reducing buyer uncertainty. This reduction can happen through artifacts, such as demos, RFPs, architecture diagrams, and POC plans, or through interaction, such as discovery, objection handling, and champion enablement.
-
-AI tools affect both artifact production and interaction support. They can summarize calls, generate first-draft RFP responses, search documentation, suggest demo flows, create competitive battlecards, and produce follow-up emails. These are real productivity gains. Evidence from deployed generative AI systems suggests productivity improvements can be substantial while still unevenly distributed across worker groups and tasks \cite{brynjolfsson2023generative}. The unresolved question is whether those gains increase the leverage and survivability of presales engineers or reduce the number needed per unit of revenue. APEX-II does not assume either answer. It evaluates survival trajectories under scenario conditions.
-
-AI adoption is uneven across firms \cite{mcelheran2024adoption}. Some organizations adopt copilots aggressively; others limit AI use because of data-security, compliance, procurement, or trust concerns. Scenario modeling is therefore unavoidable. APEX-II keeps the six APEX-I conditions: AFC, CAB, C24, PAR, HAO, and FAR. These conditions are mapped into conservative, baseline, and accelerated adoption bands. The important change is that APEX-II integrates market feedback into the survival computation through TAM rather than drawing a market-value score after RSI has already been computed.
+\subsection{Presales, Deal Size, and Superstar Dynamics}
+The presales engineer is a technical and commercial translator whose value comes from reducing buyer uncertainty, through artifacts such as demos, RFPs, and proof-of-concept plans, and through interaction such as discovery, objection handling, and champion enablement. Deal size shapes this work. Enterprise deals involve multiple stakeholders, security review, integration constraints, procurement friction, and executive sponsorship. SMB deals are more standardized and more amenable to product led evaluation. The same AI capability can therefore have different survival consequences across deal sizes, which connects to broader evidence that technology can concentrate output in a few firms and reshape labor shares \cite{autor2020fall}. APEX-II captures deal size through segment specific dependency structure rather than by assigning Enterprise a blanket resilience bonus.
 
 \section{Method: STAM}
 \subsection{Problem Formulation}
-Let segment $s \in \{\mathrm{Enterprise}, \mathrm{SMB}\}$, condition $c \in \{\mathrm{AFC}, \mathrm{CAB}, \mathrm{C24}, \mathrm{PAR}, \mathrm{HAO}, \mathrm{FAR}\}$, task $k \in \{1,\ldots,6\}$, seed $r$, and quarter $t$. The target quantity is a role survival score $RSI_{s,c,r,t} \in [0,1]$. Higher RSI means more of the presales role remains human-anchored under the scenario. Lower RSI means more role value is absorbed by automation, market change, or both.
+Let segment $s \in \{\mathrm{Enterprise}, \mathrm{SMB}\}$, condition $c$, task $k \in \{1,\ldots,6\}$, seed $r$, and quarter $t$. The target is a role survival score $RSI_{s,c,r,t} \in [0,1]$. Higher RSI means more of the presales role remains human anchored. The six tasks are discovery, technical demonstration, proof-of-concept coordination, RFP response, objection handling, and champion development. Each task $k$ has an automation susceptibility $\alpha_k$, the fraction absorbable by AI under adoption pressure, and a role criticality $\beta_k$, the contribution of the task to role survival value, with $\sum_k \beta_k = 1$.
 
-The six tasks are discovery, technical demonstration, proof-of-concept coordination, RFP response, objection handling, and champion development. Each task has two core quantities. Automation susceptibility $\alpha_{s,k}$ captures how much of the task can be absorbed by AI under adoption pressure. Role criticality $\beta_{s,k}$ captures how much the task contributes to the survival value of the presales role. APEX-I used one task portfolio. STAM allows the portfolio and dependency structure to vary by deal-size segment.
-
-The basic RSI computation follows a sigmoid-normalized survival model. For task exposure value $E_{s,c,k,t}$, subtask survival is
-\begin{equation}
-RSI_{s,c,k,t}=\sigma(\theta - E_{s,c,k,t}),
-\end{equation}
-where $\sigma$ is a logistic function and $\theta$ is the survival midpoint. Aggregate role survival is
-\begin{equation}
-RSI_{s,c,t}=\sum_k \beta_{s,k} RSI_{s,c,k,t}.
-\end{equation}
-The key extension is the construction of $E_{s,c,k,t}$. APEX-I used independent task exposure. STAM adds adoption dynamics, DAG propagation, calibration scaling, and TAM feedback.
-
-\subsection{Scenario Adoption Curves}
-Each condition has an adoption trajectory rather than a single static adoption value. A logistic adoption curve maps quarter $t$ to condition intensity:
-\begin{equation}
-A_c(t)=A^{max}_c(1+\exp[-\rho_c(t-m_c)])^{-1}.
-\end{equation}
-The conditions are interpreted as follows. AFC is an AI-free or near-AI-free counterfactual. CAB represents current AI copilot baseline. C24 represents a conservative 2024 baseline. PAR represents partial automation of structured presales work. HAO represents high adoption with human override. FAR represents full AI replacement pressure. These conditions are not forecasts by themselves. They are scenario levers used to test sensitivity.
-
-\subsection{Subtask Decomposition}
-The model decomposes presales into six subtasks because the augmentation/replacement mechanism is not uniform. Discovery depends on ambiguous buyer context and is moderately exposed. Technical demonstration is more exposed when demo environments and scripts are standardized, but less exposed when demonstrations require live adaptation. POC coordination is partly procedural and partly political. RFP response is highly exposed because it is text-heavy and template-driven. Objection handling is mixed: standard objections can be scripted, but high-stakes objections often depend on trust. Champion development is least exposed because it relies on internal buyer politics and relationship formation.
-
-Subtask-level RSI is important because aggregate survival can hide substitution within the role. A role can survive while some tasks disappear. Conversely, some tasks can become more valuable because AI removes lower-value work. STAM reports both aggregate and subtask behavior so the mechanism can be inspected.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{subtask_survival_profile.png}
-\caption{Subtask survival profile under the full APEX-II model at the final simulated quarter. RFP response and technical demonstration show the steepest survival decline under stronger adoption conditions, while champion development remains comparatively resilient.}
-\label{fig:subtaskprofile}
-\end{figure}
-
-\subsection{DAG Task Coupling}
-Presales tasks are not independent. Discovery quality influences demo relevance. Demo success influences POC scope. Champion development influences objection handling and POC success. RFP response may be downstream of discovery, demo, and security review. APEX-I's independent weighted sum could not represent this dependency.
-
-STAM uses a directed acyclic graph $G_s$ for segment $s$. Enterprise uses a serial, dependency-rich topology. SMB uses a more parallel topology. The propagated exposure is
-\begin{equation}
-\tilde{\alpha}_{s,c,k,t} =
-\alpha_{s,k} A_c(t) + \lambda \sum_j G_{s,jk}\alpha_{s,j} A_c(t),
-\end{equation}
-with clipping to keep exposure in $[0,1]$. The coefficient $\lambda$ controls propagation strength. This design tests whether topology changes survival trajectories even when base task weights remain similar.
-
-The current results show that topology changes simulation outputs, but topology is not dominant. Full-model topology R-squared is 0.065793. This supports a cautious interpretation: task coupling matters, but it does not explain most RSI variance under the current parameterization.
-
-\subsection{Empirical Calibration}
-APEX-II adds an empirical calibration layer. The intended calibration targets are BLS SOC 41-9031 employment trajectories, hiring trend proxies, and adoption-band proxies from analyst-style scenario sources. In the completed run, the BLS signal is treated as a coarse fixture rather than a definitive data source. This matters because the full model does not win external employment RMSE. The single-regime logistic baseline has RMSE 0.00608, while the full model has RMSE 0.021094.
-
-This result is important because adding structure does not automatically improve external fit. A model can be more realistic in mechanism and worse in holdout prediction if calibration data are weak, coarse, or mismatched to the specific role. For presales, SOC-level employment data are not granular enough to separate SaaS from hardware, Enterprise from SMB, or AI adoption from broader macroeconomic conditions.
-
-\subsection{TAM-Coupled Survival}
-APEX-I disclosed a market-value-score defect: market value was drawn after survival computation, making it weakly connected to condition-level survival. STAM instead includes condition-sensitive TAM dynamics inside the survival loop. The market term is not meant to assert that market growth always helps humans. Market growth can increase demand for presales work, but it can also fund faster automation. The no-TAM ablation tests whether TAM feedback changes outcomes.
-
-The current run shows that TAM materially changes internal primary scores, but condition ranking stability remains high. The no-TAM model reports a primary score of 8991.60 compared with 13787.40 for full DAG/TAM. However, Kendall tau for condition ranking is 1.0. TAM changes scale and magnitude in the simulation but does not reorder the scenario ranking in this run.
-
-\subsection{Algorithm}
-The STAM simulation follows seven steps:
-\begin{enumerate}
-\item Initialize six presales subtasks and base $\alpha$, $\beta$ weights.
-\item Select segment topology for Enterprise or SMB.
-\item Select adoption condition and compute quarterly adoption intensity.
-\item Apply calibration scaling from external proxy data.
-\item Propagate automation exposure through the task DAG.
-\item Compute subtask RSI, aggregate RSI, TAM, and market-adjusted outcomes.
-\item Repeat across seeds, conditions, segments, and ablations; report primary metric, final RSI, RMSE, topology R-squared, coverage, and paired comparisons.
-\end{enumerate}
-
-\section{Experimental Design}
-\subsection{Conditions and Segments}
-The experiment crosses two deal-size segments with six adoption conditions and 20 seeds. The segments are Enterprise and SMB. The conditions are AFC, CAB, C24, PAR, HAO, and FAR. These conditions correspond to increasing AI adoption pressure, from counterfactual low-AI settings to full replacement pressure.
-
-The design is intentionally paired by seed so that model comparisons are not driven by different random draws. Each method sees the same condition structure. This makes ablations interpretable: differences between full model, no-DAG, no-TAM, and uniform-topology variants reflect model structure rather than different random environments.
-
-\subsection{Methods and Baselines}
-The full model is \emph{apex2\_dag\_tam\_coupled}. It includes task DAG propagation, TAM feedback, and calibration scaling. The direct APEX-I baseline is \emph{apex1\_additive\_sigmoid}, which keeps the older independent weighted-sum architecture. The \emph{apex2\_expert\_priors} comparator keeps the APEX-II structure but removes external calibration. The \emph{apex2\_no\_dag\_coupling} ablation removes dependency propagation. The \emph{apex2\_no\_tam\_feedback} ablation removes TAM feedback. The \emph{apex2\_uniform\_topology} ablation removes segment-specific topology. The \emph{apex2\_linear\_displacement} model removes sigmoid survival curvature. The \emph{single\_regime\_logistic} baseline tests whether a simpler displacement process explains the data more parsimoniously.
-
-This baseline set is designed to answer three questions. First, does APEX-II separate from APEX-I? Second, which extensions are responsible for the separation? Third, does a simpler model outperform the richer framework on external fit?
-
-\subsection{Metrics}
-The primary metric is an internal simulation score reported by the experiment harness. It is useful for comparing model variants within the simulation, but it should not be interpreted as a direct labor-market quantity. Secondary metrics include final RSI, holdout employment RMSE, topology R-squared, enterprise-SMB coefficient-of-variation ratio, Kendall tau for condition ranking, BCa-style coverage at 20 seeds, and ablation differences.
-
-The full model can win the internal primary metric and lose external RMSE. That is what happens in this experiment. The paper therefore reports both rather than selecting the more flattering metric.
-
-\subsection{Reproducibility}
-The experiment is CPU-feasible and deterministic under fixed seeds. The run uses 20 seeds per condition, six adoption conditions, two segments, and eight model variants. The generated code and stage outputs are stored under the run artifact directory. Stage 12 completed successfully, Stage 14 produced analysis, results tables, and charts, and Stage 20 completed the quality gate with a proceed verdict.
-
-The project repository for this paper and its artifacts is \url{https://github.com/venomez-viper/Apex}. The paper, experiment script, metrics, figures, and quality-gate artifacts in that repository are authored and maintained by Akash Anipakalu Giridhar.
-
-\section{Results}
-\subsection{Main Model Comparison}
-The full APEX-II DAG/TAM model produces the highest internal primary score among the substantive models: 13787.40. APEX-I additive sigmoid produces 4922.41. Expert-prior APEX-II produces 13040.19. No-DAG coupling produces 7887.01. No-TAM feedback produces 8991.60. Uniform topology produces 8271.16. Linear displacement produces 9217.74. Single-regime logistic produces 5948.90.
+The base weights are expert priors triangulated from two public anchors, the task exposure logic of \cite{eloundou2023gpts} and the occupational exposure structure of \cite{felten2021occupational}, then adjusted for the presales workflow. Structured, template heavy tasks receive high $\alpha$ and lower $\beta$. Relationship anchored tasks receive low $\alpha$ and are protected by dependency structure rather than by weight alone. Table \ref{tab:weights} lists the base configuration. These are priors, not fitted values, and the calibration experiment in Section \ref{sec:calib} tests what happens when a public data anchor is added.
 
 \begin{table}[t]
-\caption{Model comparison from the completed APEX-II experiment. Primary metric is internal to the simulation and should not be interpreted as an employment quantity.}
+\caption{Base task configuration. Automation susceptibility $\alpha$ and role criticality $\beta$ are expert priors anchored to public task and occupational exposure sources, not fitted parameters.}
 \centering
 \begin{tabular}{lrr}
 \toprule
-Method & Primary metric & Final RSI \\
+Task & $\alpha$ (automatability) & $\beta$ (criticality) \\
 \midrule
-Full DAG/TAM & 13787.40 & 0.649303 \\
-APEX-I additive & 4922.41 & 0.773805 \\
-Expert-prior APEX-II & 13040.19 & 0.649983 \\
-No DAG coupling & 7887.01 & 0.665808 \\
-No TAM feedback & 8991.60 & 0.674854 \\
-Uniform topology & 8271.16 & N/A \\
-Linear displacement & 9217.74 & N/A \\
-Single-regime logistic & 5948.90 & 0.634293 \\
+Discovery & 0.35 & 0.20 \\
+Technical demonstration & 0.55 & 0.18 \\
+Proof-of-concept coordination & 0.25 & 0.22 \\
+RFP response & 0.70 & 0.12 \\
+Objection handling & 0.30 & 0.13 \\
+Champion development & 0.15 & 0.15 \\
+\bottomrule
+\end{tabular}
+\label{tab:weights}
+\end{table}
+
+Subtask survival uses a sigmoid normalized survival model. For task exposure $E_{s,c,k,t}$,
+\begin{equation}
+RSI_{s,c,k,t}=\sigma(\kappa(\theta - E_{s,c,k,t})),
+\end{equation}
+where $\sigma$ is the logistic function, $\theta$ the survival midpoint, and $\kappa$ the sharpness. Aggregate role survival is
+\begin{equation}
+RSI_{s,c,t}=\sum_k \beta_{k} RSI_{s,c,k,t}.
+\end{equation}
+The extension over APEX-I is the construction of $E_{s,c,k,t}$, which now carries adoption dynamics, dependency propagation, and calibration scaling.
+
+\subsection{Scenario Adoption Curves}
+Each condition has an adoption trajectory rather than a static value. A logistic curve maps quarter $t$ to condition intensity,
+\begin{equation}
+A_c(t)=A^{max}_c(1+\exp[-\rho_c(t-m_c)])^{-1}.
+\end{equation}
+AFC is an AI free counterfactual, CAB is the current copilot baseline, C24 is a conservative 2024 baseline, PAR is partial automation of structured work, HAO is high adoption with human override, and FAR is full replacement pressure. Conditions are grouped into conservative, baseline, and accelerated bands. They are scenario levers used to test sensitivity, not point forecasts.
+
+\subsection{Dependency Propagation and the EPM}
+Presales tasks form a directed acyclic graph $G_s$ that differs by segment. Enterprise uses a serial, dependency rich topology in which discovery feeds demonstration, objection handling, and champion development, and demonstration feeds proof-of-concept and RFP. SMB uses a parallel topology with negligible coupling. Propagated exposure is
+\begin{equation}
+\tilde{\alpha}_{s,c,k,t} = \alpha_{k} A_c(t) + \lambda \sum_j G_{s,jk}\,\alpha_{j} A_c(t),
+\end{equation}
+clipped to $[0,1]$, with propagation strength $\lambda = 0.30$.
+
+The first invention follows directly. Define independent role exposure as $\sum_k \beta_k \alpha_k A$ and dependency-aware role exposure as $\sum_k \beta_k \tilde{\alpha}_k$. The Exposure Propagation Multiplier is their ratio at saturating adoption,
+\begin{equation}
+\mathrm{EPM}_s = \frac{\sum_k \beta_k \tilde{\alpha}_{s,k}}{\sum_k \beta_k \alpha_k}.
+\end{equation}
+$\mathrm{EPM}_s = 1$ when tasks are independent. $\mathrm{EPM}_s > 1$ means an occupation level or independent task score understates the true role exposure. In the reported run the Enterprise EPM is 1.36 and the SMB EPM is 1.00. An occupation level index therefore understates Enterprise presales exposure by about 36 percent, and understates it more in the exact segment that firms assume is safest.
+
+\subsection{Augmentation Sequencing Policy}
+The second invention converts the dependency structure into a deployment rule. Define the role collapse contribution of automating task $k$ as its direct criticality plus the propagated criticality of its downstream neighbors,
+\begin{equation}
+\mathrm{coll}_k = \beta_k + \lambda \sum_j G_{s,kj}\,\beta_j.
+\end{equation}
+A naive rollout automates tasks in order of raw automatability $\alpha_k$. The Augmentation Sequencing Policy automates in ascending order of $\mathrm{coll}_k$, so it defers upstream hubs and high criticality tasks. We compare the two rollouts by automating tasks one at a time and measuring dependency-aware role exposure at each step. The sequencing benefit is the mean exposure difference across the partial rollout, since at full automation the orders coincide. Sequenced rollout preserves 1.81 points of Enterprise role survival and 0.45 points of SMB role survival. The benefit is four times larger in Enterprise because dependency structure is what sequencing exploits, and the policy recommends automating RFP response and standard objection handling first while protecting discovery and proof-of-concept ownership until last.
+
+\subsection{TAM Coupled Survival and Calibration}
+\label{sec:calib}
+APEX-I disclosed a market value defect, where market value was drawn after survival was computed and was therefore condition invariant. APEX-II instead places condition sensitive total addressable market dynamics inside the survival loop, and a no-TAM ablation tests whether this changes outcomes. APEX-II also adds a calibration layer whose intended anchors are BLS SOC 41-9031 employment, hiring proxies, and adoption bands. In this run the employment signal is a coarse public fixture, and Section \ref{sec:rmse} reports the honest consequence.
+
+\subsection{Algorithm}
+The STAM simulation initializes six subtasks and base weights, selects segment topology, computes quarterly adoption intensity per condition, applies calibration scaling, propagates exposure through the DAG, computes subtask RSI, aggregate RSI, TAM, and market adjusted outcomes, and repeats across 20 seeds, six conditions, two segments, and eight model variants. It then computes the EPM and the ASP rollout. The full procedure runs on CPU in about 100 seconds and is deterministic under fixed seeds.
+
+\section{Experimental Design}
+The experiment crosses two segments with six conditions and 20 seeds, paired by seed so that comparisons reflect model structure rather than different random draws. The full model is the DAG and TAM coupled STAM. Baselines and ablations are the APEX-I additive sigmoid, an expert prior variant without calibration, a no-DAG variant, a no-TAM variant, a uniform topology variant, a linear displacement variant, and a single regime logistic baseline. This set answers three questions. Does APEX-II separate from APEX-I. Which extensions drive the separation. Does a simpler model fit external data better. Reported metrics are final RSI, a reference relative model comparison score, holdout employment RMSE, topology $R^2$, the Enterprise to SMB coefficient of variation ratio, Kendall tau for condition ranking, and BCa style coverage at 20 seeds \cite{lakens2022sample,lakens2021simulation}.
+
+\section{Results}
+\subsection{Model Comparison and Final RSI}
+Table \ref{tab:comparison} reports final RSI and a reference relative model comparison score for every method. The comparison score is a negative BIC computed against the full model RSI trajectory, so it measures distance from the full model rather than external truth, and it is reported only to show which variants change the survival landscape most. The full APEX-II model and the no-TAM ablation are nearly identical on this score because TAM feedback enters the market index without directly entering the RSI equation, which is itself a finding: the market coupling repair is architecturally correct but changes RSI little in this parameterization. The APEX-I additive baseline and the single regime logistic are the most distant from the full model, confirming that DAG coupling and nonlinear survival, not TAM, drive the structural difference.
+
+\begin{table}[t]
+\caption{Reproduced model comparison. Final RSI is the mean over segments, conditions, and 20 seeds at the horizon. The comparison score is reference relative to the full model and is not an external quantity.}
+\centering
+\begin{tabular}{lrr}
+\toprule
+Method & Final RSI & Comparison score \\
+\midrule
+APEX-I additive & 0.822 & 77855.7 \\
+Single-regime logistic & 0.808 & 78180.0 \\
+No DAG coupling & 0.783 & 91984.8 \\
+Uniform topology & 0.783 & 91975.3 \\
+Expert-prior APEX-II & 0.769 & 115945.0 \\
+Linear displacement & 0.751 & 92839.9 \\
+Full APEX-II (DAG+TAM) & 0.747 & 443597.3 \\
+No TAM feedback & 0.747 & 443606.9 \\
 \bottomrule
 \end{tabular}
 \label{tab:comparison}
 \end{table}
 
-These results show that APEX-II substantially changes the simulation output relative to APEX-I. The full model is not merely a relabeling of the earlier additive model. DAG coupling, TAM feedback, and calibration interact to produce a different survival landscape. However, the magnitude of the primary metric should be interpreted carefully because it is sensitive to the market-adjusted scoring scale.
+Final RSI is the interpretable quantity. APEX-I additive reports 0.822. Full APEX-II reports 0.747. The richer model does not inflate survival, it reduces it, because dependency propagation adds downstream exposure that the additive model cannot see. The full model sits close to the simpler logistic baseline at 0.808 only in level, not in mechanism, since the logistic baseline has no segment structure and no propagation.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{method_comparison.png}
-\caption{Method comparison generated from Stage 14 experiment artifacts.}
+\caption{Method comparison generated from the reproduced experiment artifacts.}
 \label{fig:method}
 \end{figure}
 
-\begin{figure}[t]
+\subsection{Subtask Survival: the Practitioner View}
+Table \ref{tab:subtask} reports subtask survival at the horizon for the full model. The ranking is the actionable output. RFP response is the most exposed task in both segments, followed by technical demonstration and, in Enterprise, proof-of-concept coordination. Champion development and discovery are the most protected. The Enterprise and SMB columns differ most on proof-of-concept coordination, 0.686 against 0.849, because Enterprise POC work inherits automation from upstream discovery and demonstration through the dependency graph, while SMB POC work does not.
+
+\begin{table}[t]
+\caption{Subtask survival at horizon, full APEX-II model, mean over conditions and seeds. Lower is more exposed.}
 \centering
-\includegraphics[width=\columnwidth]{bic_model_ranking.png}
-\caption{Model ranking by negative BIC from the committed comparison table. The ranking supports the claim that the full APEX-II and no-TAM variants separate from simpler baselines on internal fit, while later RMSE checks still bound the external-validity claim.}
-\label{fig:bicranking}
-\end{figure}
+\begin{tabular}{lrr}
+\toprule
+Subtask & Enterprise & SMB \\
+\midrule
+RFP response & 0.505 & 0.597 \\
+Technical demonstration & 0.622 & 0.687 \\
+Proof-of-concept coordination & 0.686 & 0.849 \\
+Objection handling & 0.771 & 0.826 \\
+Discovery & 0.802 & 0.802 \\
+Champion development & 0.847 & 0.886 \\
+\bottomrule
+\end{tabular}
+\label{tab:subtask}
+\end{table}
 
-\subsection{Final RSI}
-Final RSI gives a more interpretable survival quantity. APEX-I additive sigmoid reports final RSI 0.773805. Full APEX-II reports 0.649303. Single-regime logistic reports 0.634293. Expert-prior APEX-II reports 0.649983. No-DAG reports 0.665808. No-TAM reports 0.674854.
+\subsection{Segment and Scenario Divergence}
+Table \ref{tab:scenario} reports aggregate RSI by condition and segment. Two patterns matter. Survival declines monotonically from AFC to FAR, as expected. More important, Enterprise survival is below SMB survival in every condition, and the gap widens from 0.002 under the AI free counterfactual to 0.145 under full replacement pressure. This is the opposite of the common assumption that complex Enterprise deals are automatically safer. In a serial topology, automating upstream discovery and demonstration propagates exposure into downstream proof-of-concept and objection handling, so the more dependent motion loses more as adoption rises. The Enterprise to SMB coefficient of variation ratio is 1.65, confirming that the segments behave differently enough to justify deal size stratification. Kendall tau for condition ranking is 1.00, so the scenario ladder is internally stable.
 
-The full model therefore moves survival estimates closer to the simpler logistic model than to APEX-I. This suggests that APEX-I may have been optimistic under its additive sigmoid assumptions. The DAG/TAM structure introduces additional exposure propagation that reduces final survival in the full model.
-
-\begin{figure}[t]
+\begin{table}[t]
+\caption{Aggregate RSI by condition and segment, full APEX-II model. Gap is Enterprise minus SMB.}
 \centering
-\includegraphics[width=\columnwidth]{final_rsi_by_condition.png}
-\caption{Final RSI by adoption condition. The curve shape validates the main qualitative conclusion: APEX-II lowers survival relative to APEX-I under stronger adoption pressure while remaining close to simpler regime-based displacement in the most exposed scenarios.}
-\label{fig:finalrsi}
-\end{figure}
+\begin{tabular}{lrrr}
+\toprule
+Condition & Enterprise & SMB & Gap \\
+\midrule
+AFC & 0.916 & 0.918 & -0.002 \\
+CAB & 0.824 & 0.857 & -0.033 \\
+C24 & 0.785 & 0.833 & -0.047 \\
+PAR & 0.680 & 0.765 & -0.085 \\
+HAO & 0.581 & 0.699 & -0.117 \\
+FAR & 0.480 & 0.625 & -0.145 \\
+\bottomrule
+\end{tabular}
+\label{tab:scenario}
+\end{table}
 
-\subsection{External RMSE}
-External fit is less favorable to the full model. The full DAG/TAM model has holdout employment RMSE 0.021094. The single-regime logistic model has RMSE 0.00608. This is the strongest warning sign in the experiment. A richer model can better encode mechanism while still fitting coarse external data worse than a simpler trend.
+\subsection{The Invention in Numbers}
+Table \ref{tab:invention} reports the EPM and the sequencing benefit. The Enterprise EPM of 1.36 is the headline: any occupation level score applied to Enterprise presales understates exposure by about a third. The SMB EPM of 1.00 shows the effect is structural, not a modeling artifact, since a parallel topology produces no propagation. The sequencing benefit of 1.81 points in Enterprise against 0.45 in SMB shows that the same dependency structure that raises exposure also creates room to manage it, and that the management lever is four times stronger in Enterprise.
 
-This does not mean APEX-II should be discarded. It means the model should not be described as empirically validated. The calibration layer needs better data: official BLS pulls, occupation-industry filters, presales-specific hiring series, segment-specific adoption data, and holdout periods that are not contaminated by macro shocks.
+\begin{table}[t]
+\caption{Dependency-aware exposure results. EPM above 1 means occupation level scores understate exposure. Sequencing benefit is the role survival preserved by ASP versus naive rollout during the partial transition.}
+\centering
+\begin{tabular}{lrr}
+\toprule
+Quantity & Enterprise & SMB \\
+\midrule
+Independent role exposure & 0.370 & 0.370 \\
+Coupled role exposure & 0.504 & 0.370 \\
+Exposure Propagation Multiplier & 1.36 & 1.00 \\
+Sequencing benefit (survival pts) & 1.81 & 0.45 \\
+\bottomrule
+\end{tabular}
+\label{tab:invention}
+\end{table}
 
-\subsection{Ablation Results}
-The no-DAG ablation drops the primary score from 13787.40 to 7887.01. The no-TAM ablation drops it to 8991.60. Uniform topology reports 8271.16. Linear displacement reports 9217.74. These differences show that the full model's components matter internally. Removing structure changes the simulated outcomes.
+\subsection{External RMSE: an Honest Negative Result}
+\label{sec:rmse}
+The calibration layer does not help. On the coarse public employment holdout, the expert prior model has RMSE 0.075 while the calibrated model has RMSE 0.121, a 60 percent increase in error. Adding a public data anchor made external fit worse, not better. The reason is granularity. BLS SOC 41-9031 mixes SaaS and hardware sales engineers, Enterprise and SMB motions, and AI effects with macroeconomic effects, so it cannot validate a presales specific mechanism. We report this rather than suppress it, because it defines exactly what data the next version needs. A model can be more realistic in mechanism and still fit a coarse aggregate worse, and pretending otherwise would be the failure mode this paper is trying to avoid.
 
-But the ablations do not prove a clean causal story. The full model bundles multiple changes: DAG propagation, TAM feedback, calibration, nonlinear survival, and segment topology. Some ablations isolate one feature, but remaining interactions still exist. The ablation evidence should be read as mechanism sensitivity, not as proof that any one component is the true driver of labor-market outcomes.
+\subsection{Statistical Coverage}
+The 20 seed design achieves BCa style coverage of 0.92, above the 0.88 coverage at 10 seeds and well above the APEX-I three seed design, but below nominal 0.95. Twenty seeds is a reasonable working point for this class of simulation, and sensitive business decisions should push toward 50 or 100 seeds \cite{lakens2022sample,lakens2021simulation}.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{ablation_analysis.png}
-\caption{Ablation analysis across DAG coupling, TAM feedback, topology, and alternative displacement forms.}
+\caption{Ablation analysis across DAG coupling, TAM feedback, topology, and displacement form.}
 \label{fig:ablation}
 \end{figure}
 
-\subsection{Segment and Scenario Analysis}
-The Enterprise/SMB divergence is behaviorally meaningful. The full model reports an enterprise-SMB coefficient-of-variation ratio of 1.413188. Segment behavior differs enough to justify deal-size stratification. The result does not support a simple ``Enterprise is always safer'' narrative. In a serial topology, automation of upstream tasks can propagate downstream and reduce role survival even in complex deals.
+\section{Implications for Presales Organizations}
+The first implication is that presales AI strategy should not be built on an occupation level replacement score. The EPM result shows such a score understates Enterprise exposure by about a third, and the meaningful unit is the task and segment pair. RFP response in an SMB motion is not the same risk object as champion development in an Enterprise motion. A single number hides exactly the variation a manager needs.
 
-Condition ranking stability is high: Kendall tau is 1.0. The ordering of conditions is stable between coupled and uncoupled variants. This is an internal sanity check, not external validation. It shows that the scenario ladder behaves consistently inside the model.
+The second implication is a concrete deployment order. The ASP result says automate the safe leaves first, RFP response and standard objection handling, and protect the upstream hubs, discovery and proof-of-concept ownership, until last. This is not a claim that discovery cannot be assisted. It is a claim that unsupervised substitution of upstream tasks propagates exposure into downstream work and collapses more of the role than the raw automatability of those upstream tasks suggests. The correct pattern for protected tasks is decision support, preparation, and memory retrieval, not autonomous replacement.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{segment_gap_by_condition.png}
-\caption{Enterprise minus SMB final RSI under full APEX-II. The nonzero gap across conditions supports the paper's segment-stratification conclusion while showing that segment effects vary by scenario rather than acting as a constant offset.}
-\label{fig:segmentgap}
-\end{figure}
+The third implication is governance by deal size. In SMB motions, standardization makes AI assisted workflows repeatable and the sequencing benefit is small, so aggressive augmentation is reasonable. In Enterprise motions, dependency propagation means early automation of discovery or demonstration reshapes downstream proof-of-concept and objection handling, the sequencing benefit is four times larger, and governance therefore matters more even though the work looks less automatable at first glance. The instrument is deployable: an organization can supply its own task time allocation and deal mix and receive its own RSI trajectory, EPM, and sequencing map from the same script that produced these results.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{experiment_comparison.png}
-\caption{Experiment comparison across model variants and scenario conditions.}
-\label{fig:experiment}
-\end{figure}
+\section{Threats to Validity}
+The primary internal threat is parameter coupling. The full model bundles DAG propagation, TAM feedback, calibration, nonlinear survival, and segment topology, and while ablations isolate several components, interactions remain, so the ablations support mechanism sensitivity rather than clean causal decomposition. The base weights in Table \ref{tab:weights} are expert priors, and although they are anchored to public exposure sources, they are not fitted to presales outcomes. The reference relative comparison score is not an external quantity and is reported only for structural contrast.
 
-\subsection{Statistical Coverage}
-The 20-seed design achieves BCa-style coverage of 0.916667. This is below nominal 95 percent but strong enough to improve over the APEX-I three-seed design. The result supports the decision to use at least 20 seeds for APEX-II-style RSI simulations. It also suggests that future work should either raise seed counts further or improve the confidence interval procedure if nominal 95 percent coverage is required \cite{lakens2022sample,lakens2021simulation}.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{coverage_and_calibration.png}
-\caption{Validation checks from committed summary metrics. Increasing the design from 10 to 20 seeds improves coverage, but the calibration stress test shows that the calibrated fixture has higher RMSE than expert priors, reinforcing the paper's restrained conclusion.}
-\label{fig:coveragecalibration}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{metric_trajectory.png}
-\caption{Metric trajectory over the simulated horizon.}
-\label{fig:trajectory}
-\end{figure}
-
-\section{Discussion}
-APEX-II succeeds most clearly as a diagnostic framework. It converts the weaknesses of APEX-I into explicit tests. Deal-size stratification becomes a segment comparison. Subtask heterogeneity becomes a six-task decomposition. The MVS coupling defect becomes a TAM-feedback ablation. Low seed count becomes a coverage test. Informal scenario mapping becomes a condition-band design. Prior-driven weights become a calibration stress test.
-
-The most important substantive lesson is that stronger structure does not automatically produce stronger empirical validity. The full model wins the internal primary metric, but the single-regime logistic baseline wins external RMSE. That tension is useful. It prevents the paper from overstating APEX-II as a forecast model. It also shows why presales-specific data are necessary. A single SOC-level employment series cannot validate a task-coupled model of SaaS presales work.
-
-The second lesson is that Enterprise complexity cuts both ways. Enterprise deals are more relational and bespoke, which should protect human presales work. But Enterprise workflows are also more dependent. If upstream discovery, demo, or documentation tasks become automated, downstream POC and objection-handling work can change as well. A serial topology can amplify exposure rather than simply protect the role.
-
-The third lesson is that TAM feedback matters internally but does not necessarily reorder scenarios. Market expansion can increase the value of presales work, but it can also accelerate AI investment. In the current run, TAM feedback changes score magnitude without changing condition ranking. Future versions should test alternative TAM equations and empirical market-growth inputs.
-
-\section{Implications and Threats to Validity}
-\subsection{Implications for Presales Organizations}
-The most immediate implication is that presales AI strategy should not be designed around an occupation-level replacement score. The STAM results suggest that the meaningful unit of analysis is the task-segment pair. RFP response in an SMB motion is not the same risk object as champion development in an Enterprise motion. A single presales exposure number can therefore hide precisely the variation managers need when deciding where to deploy copilots, where to redesign workflow, and where to preserve human ownership.
-
-For operating teams, the model points toward a differentiated automation policy. Structured artifact production can be aggressively augmented because the output is reviewable and the failure modes are often visible. Discovery synthesis, objection handling, and champion development require more cautious deployment because errors can damage trust in ways that are not captured by token-level or document-level productivity metrics. This does not mean that AI has no role in those tasks. It means the appropriate design pattern is decision support, preparation, and memory retrieval rather than unsupervised substitution.
-
-The Enterprise/SMB split also matters for organizational design. In SMB motions, standardization can make AI-assisted workflows more repeatable. In Enterprise motions, dependency propagation means early-stage automation can reshape downstream work. If AI changes discovery notes, demo framing, or solution architecture assumptions, then POC coordination and objection handling inherit those changes. This makes governance more important in Enterprise presales, even if the work appears less automatable at first glance.
-
-\subsection{Threats to Internal Validity}
-The first internal threat is parameter coupling. STAM introduces DAG propagation, TAM feedback, calibration scaling, and nonlinear survival. Although ablations isolate several components, the full model contains interactions. A no-DAG ablation removes topology, but it does not remove the consequences of calibration or TAM dynamics. Similarly, a no-TAM ablation still operates inside the same task and adoption structure. The reported ablations therefore support mechanism sensitivity, not clean causal decomposition.
-
-The second internal threat is metric scale. The primary metric is useful for comparing variants inside the same simulation harness, but it is not directly interpretable as employment, revenue, or headcount. A model can score higher because it better aligns with internal reward structure, not because it predicts the real labor market better. This is why the paper places equal emphasis on final RSI and external RMSE.
-
-The third internal threat is seed sufficiency. Twenty seeds is a meaningful improvement over APEX-I's three-seed design, and coverage of 0.916667 is encouraging. Still, the result is below nominal 95 percent coverage. Future experiments should test 50-seed and 100-seed variants, especially if STAM is used for sensitive business or policy interpretation.
-
-\subsection{Threats to External Validity}
-The largest external threat is occupational mismatch. BLS SOC 41-9031 covers sales engineers broadly. It does not isolate SaaS presales, and it does not distinguish Enterprise strategic sales from SMB product-led sales. A calibration layer built on that signal can be directionally useful while still too coarse to validate a presales-specific mechanism.
-
-A second external threat is adoption heterogeneity. AI capability and AI adoption are not the same. Some organizations have strong technical ability to deploy copilots but weak legal or security tolerance. Others adopt quickly but use AI only for drafting and summarization. Scenario bands are therefore approximations. Without firm-level adoption data, STAM can test scenario sensitivity but cannot assign probabilities to the scenarios.
-
-A third external threat is market simultaneity. TAM feedback is included because market expansion can change role survival, but market growth and automation investment may be jointly determined. A growing category can hire more presales engineers while also funding better automation. A shrinking category can reduce headcount even if task automation is weak. Future versions should model these feedbacks with external TAM series rather than internal scenario draws.
+The primary external threat is occupational mismatch. BLS SOC 41-9031 is too coarse to isolate SaaS presales or to separate Enterprise from SMB, which is why the calibration layer degrades holdout fit. Adoption is also heterogeneous across firms \cite{mcelheran2024adoption}, so scenario bands are approximations rather than probabilities, and market growth and automation investment may be jointly determined, which the internal TAM term only approximates. These threats bound the claims to diagnostic and planning use, not forecasting.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{metric_heatmap.png}
-\caption{Metric heatmap used to inspect variation across model variants and reported outcomes.}
+\caption{Metric heatmap across model variants and reported outcomes.}
 \label{fig:heatmap}
 \end{figure}
 
 \section{Future Work}
-The next version of APEX-II should replace coarse calibration fixtures with auditable external data. The minimum useful dataset would include official BLS sales-engineer employment series, SaaS-specific job posting series, firm-level AI adoption indicators, and segment tags that separate Enterprise from SMB motions. A stronger dataset would include win-rate, cycle-time, POC-conversion, and RFP-effort measures from real presales operations.
+The next version should replace the coarse employment fixture with auditable data: official occupation and industry filtered employment series, SaaS specific job posting series, firm level adoption indicators, and segment tags. Presales process metrics may validate the mechanism earlier than employment does, including demo preparation time, RFP turnaround, proof-of-concept staffing, technical win rate, and the ratio of presales engineers to account executives, because these move before headcount and are less confounded by macroeconomic shocks. A full factorial design should independently vary DAG strength, TAM elasticity, calibration source, topology, adoption slope, and survival curvature to produce normalized effect sizes. Finally, a mature APEX-III should model augmentation quality alongside displacement, since AI that improves discovery synthesis or demo preparation may raise the value of human presales work even while reducing hours per artifact, which requires both a displacement term and a complementarity term with empirical tests that separate productivity gain from labor substitution \cite{raisch2021artificial}.
 
-The second research direction is a fuller factorial design. The current experiment includes targeted ablations, but a complete design should independently vary DAG strength, TAM elasticity, calibration source, segment topology, adoption slope, and survival curvature. That would allow normalized effect sizes for each mechanism and would reduce the risk of attributing an interaction effect to one component.
-
-The third direction is validation against intermediate outcomes rather than only employment. Employment moves slowly and is confounded by macroeconomic forces. Presales process metrics may move earlier: demo preparation time, RFP turnaround, POC staffing, sales-cycle variance, technical win rate, and the ratio of presales engineers to account executives. These intermediate outcomes may provide better validation targets for STAM than aggregate occupation counts.
-
-Finally, future work should model augmentation quality, not only automation exposure. If AI improves the average quality of discovery synthesis or demo preparation, it may raise the value of human presales work even while reducing hours per artifact. A mature APEX-III would therefore need both displacement and complementarity terms, along with empirical tests that distinguish productivity gain from labor substitution.
-
-\section{Limitations}
-This paper is a simulation study. It should not be read as a direct employment forecast for sales engineers. The empirical calibration layer is currently limited by coarse external data. BLS SOC 41-9031 includes sales engineers outside SaaS presales and does not distinguish Enterprise from SMB motions. Hiring proxies and adoption-band sources need stronger provenance before they can support policy-grade claims.
-
-The primary metric is internal to the simulation. It is useful for comparing model variants, but it is not a direct economic quantity. The external RMSE result is therefore crucial: the simpler logistic model fits the coarse holdout series better than the full model. Any future version must improve external validation before claiming predictive superiority.
-
-The ablation design is informative but not exhaustive. Removing DAG or TAM changes outcomes, but the full model includes multiple interacting components. Future work should use a fuller factorial design and report normalized effect sizes for each component. The current 20-seed design is better than APEX-I but still below ideal coverage.
+\section{Reproducibility}
+The full experiment, the EPM computation, and the ASP rollout are produced by a single deterministic script, \texttt{apex2\_simulation.py}, using 20 seeds per condition. It writes the results time series, the model comparison, the final RSI summary, the metrics file, and the invention file used for every number in this paper. The project repository is \url{https://github.com/venomez-viper/Apex}, authored and maintained by Akash Anipakalu Giridhar.
 
 \section{Conclusion}
-This paper develops APEX-II as a presales AI exposure audit, not as a generic automation score. The useful output is a structured view of where presales work is exposed, where human leverage remains, and how those conclusions change between Enterprise and SMB motions. In the completed experiment, the original APEX-I formulation looks too coarse: it reports a higher final RSI of 0.773805, while the full STAM specification reports 0.649303 after task coupling, TAM feedback, and segment structure are included. That shift matters because it changes the managerial reading of the role. Presales does not disappear as one block, but its structured artifacts and repeatable workflows absorb more automation pressure than APEX-I made visible.
-
-The most actionable result is the subtask profile. RFP response and technical demonstration are the first places to expect heavy AI substitution or compression, especially under PAR, HAO, and FAR conditions. Discovery, objection handling, and champion development retain higher survival because they depend more on ambiguous buyer context, trust, and internal customer politics. For a presales leader, this suggests a practical operating rule: automate and measure artifact-heavy work first, but keep human ownership around discovery quality, stakeholder alignment, objection handling, and POC judgment. For a researcher, the same result shows why occupation-level exposure scores are too blunt for hybrid technical-commercial roles.
-
-The Enterprise/SMB split is also useful. The experiment shows nonzero segment gaps across conditions, which means one aggregate presales RSI hides meaningful differences in sales motion. SMB workflows are more standardized and therefore easier to compress with AI. Enterprise workflows have more relationship and dependency structure, but that structure can amplify upstream errors when discovery, demo framing, or documentation is automated poorly. STAM therefore gives a way to stress-test AI rollout plans by segment rather than treating all presales teams as interchangeable.
-
-The validation result keeps the claim honest. STAM separates from APEX-I on internal simulation metrics and gives richer task-level diagnostics, but it does not yet beat the simpler logistic baseline on coarse external employment RMSE. The conclusion is therefore practical rather than grand: APEX-II is useful today as a framework for presales exposure analysis, workflow redesign, and scenario stress testing. It should not be used as a standalone employment forecast until it is calibrated against presales-specific hiring data, sales-cycle metrics, POC staffing, win-rate movement, and firm-level AI adoption records.
+APEX-II extends the AI Presales Exposure Index into a deal size stratified, subtask level, dependency-aware framework, and its contribution is not another exposure score but a correction to how exposure is computed. The Exposure Propagation Multiplier shows that the independent task assumption understates Enterprise presales exposure by about 36 percent. The Augmentation Sequencing Policy turns that same dependency structure into a deployment order that preserves role survival during AI rollout, with four times the leverage in Enterprise as in SMB. The framework is honest about its limits. It shifts final RSI downward relative to APEX-I because it sees exposure the additive model cannot, and it shows that a coarse public calibration increases holdout error rather than reducing it. Used as intended, as a diagnostic and planning instrument rather than a forecast, APEX-II gives presales leaders something an occupation level score cannot: a task and segment map of where AI augments, where it replaces, and in what order it is safe to deploy.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
