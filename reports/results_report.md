@@ -3,8 +3,14 @@
 ## Main Finding
 
 The full APEX-II DAG/TAM model separates strongly from APEX-I on the internal
-simulation metric, but it does not beat the single-regime logistic model on the
-coarse external employment RMSE. This is the central result of the paper.
+simulation metric and gives a more useful task-level view of presales exposure.
+The key practical result is that AI pressure is concentrated in repeatable
+artifact-heavy work such as RFP response and technical demonstration, while
+discovery, objection handling, and champion development remain more
+human-anchored. The model does not beat the single-regime logistic baseline on
+coarse external employment RMSE, so the work should be used as a presales
+exposure audit and scenario tool rather than as a standalone employment
+forecast.
 
 ## Headline Metrics
 
@@ -32,10 +38,12 @@ APEX-II changes the simulation output in a meaningful way. The full model is not
 a cosmetic rewrite of APEX-I. DAG coupling, TAM feedback, segment structure, and
 calibration interact to produce different survival trajectories.
 
-The result is not a simple win. The richer model has a worse external RMSE than
-the single-regime logistic baseline. That matters. It means the simulation is
-useful for mechanism testing, but the available external calibration signal is
-too coarse to support strong predictive claims.
+The practical reading is straightforward: use AI first where work is structured,
+reviewable, and artifact-heavy; keep stronger human control where work depends
+on ambiguity, customer trust, and political alignment. The richer model has a
+worse external RMSE than the single-regime logistic baseline, so it should be
+treated as a planning and stress-testing framework rather than a validated
+employment forecasting model.
 
 ## Segment Result
 

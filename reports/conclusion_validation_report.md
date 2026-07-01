@@ -58,8 +58,29 @@ stress-test weakness: calibrated fixture RMSE is higher than expert-prior RMSE.
 These findings validate the decision to present STAM as a simulation framework,
 not a production employment forecaster.
 
+## Practical Conclusion
+
+The useful conclusion is not that APEX-II predicts exact presales employment.
+The useful conclusion is that STAM turns presales AI exposure into an auditable
+task and segment analysis.
+
+The validated takeaways are:
+
+- APEX-I is too coarse for presales planning because it hides task-level
+  exposure differences.
+- RFP response and technical demonstration are the most exposed work surfaces in
+  the current simulation.
+- Discovery, objection handling, and champion development remain more
+  human-anchored because they depend on buyer ambiguity, trust, and political
+  context.
+- Enterprise and SMB motions should not be modeled with one aggregate survival
+  score.
+- APEX-II is suitable for workflow stress testing and presales AI rollout
+  planning, but not yet for standalone employment forecasting.
+
 ## Validation Judgment
 
-The paper's conclusions are supported if interpreted as claims about simulation
-behavior, mechanism inspection, and research-framework improvement. They are not
-supported as claims of externally validated labor-market forecasting accuracy.
+The paper's conclusions are supported as claims about simulation behavior,
+mechanism inspection, workflow-risk analysis, and scenario stress testing. They
+are not supported as claims of externally validated labor-market forecasting
+accuracy.
